@@ -184,6 +184,7 @@ function tastytxt.dig2zero(text)
 end
 
 -- replace cnt-frequency tokens with <unk>
+-- FIXME! this function is an abomination
 function tastytxt.repunk(text,cnt)
   local text = text
   -- find rare tokens
@@ -220,15 +221,21 @@ end
 lowecasing, tokenization, replacing rare (singleton) tokens with <unk>, replacing
 digits with zeros. Include an option to include/exclude punctuation and <unk>.
 
-incpunct -- include punctuation if true
-incunk -- include <unk> if true
+Do not process big text files, it will trigger out of memory errors on tastytxt.repunk function!
+Split you corpus into smaller files "split -l 10000 raw_corpus.txt".
+
+punct -- include punctuation if true
+unk -- include <unk> if true
 ]]
 function tastytxt.prep(text,punct,unk)
   local text = text
   -- lowercase text
   print('> lowercasing...')
   text = tastytxt.low(text)
-  if punct == 'nopunkt' then print('> stripping punctuation...') text = tastytxt.stripp(text) end
+  if punct then
+    print('> stripping punctuation...')
+    text = tastytxt.stripp(text)
+  end
   -- tokenize punctuation
   print('> tokenizing...')
   text = tastytxt.tokpunct(text)
@@ -236,7 +243,10 @@ function tastytxt.prep(text,punct,unk)
   print('> digits to zero...')
   text = tastytxt.dig2zero(text)
   -- replace singletons with <unk>
-  if unk == 'unk' then print('> adding <unk>...') text = tastytxt.repunk(text,1) end
+  if unk then
+    print('> adding <unk>...')
+    text = tastytxt.repunk(text,1)
+  end
   return text
 end
 
