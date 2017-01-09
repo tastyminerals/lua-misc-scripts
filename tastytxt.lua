@@ -213,9 +213,6 @@ end
 lowecasing, tokenization, replacing rare (singleton) tokens with <unk>, replacing
 digits with zeros. Include an option to include/exclude punctuation and <unk>.
 
-Do not process big text files, it will trigger out of memory errors on tastytxt.repunk function!
-Split you corpus into smaller files "split -l 10000 raw_corpus.txt".
-
 punct -- include punctuation if true
 unk -- include <unk> if true
 ]]
