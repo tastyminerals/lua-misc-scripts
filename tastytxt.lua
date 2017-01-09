@@ -100,21 +100,22 @@ function tastytxt.stripp(text)
   return table.concat(lns,'\n')
 end
 
--- refit corpus so that each sentence takes one line
---[[
+-- refit corpus so that each sentence takes one line, whitespace follows sentence delimiter
+-- regex involved, use carefully
 function tastytxt.sent2line(text)
-  local text = text
   local sents = {}
-  for sent in utf8.gmatch(text, "[^%.%?%!]+[%.%!%?]+") do
-    print(sent)
-    print('-----')
+  local lns = tastytxt.splitlines(text)
+  for _,line in ipairs(lns) do
+    for sent in utf8.gmatch(line, "[^%.%?%!]+[%.%!%?]+ ?") do
+      table.insert(sents,sent)
+    end
   end
+  return sents
 end
-]]
+
 
 -- tokenize text and return lines array of tokens array
 function tastytxt.tok(text)
-  local text = text
   local lns = {}
   local toks = {}
   -- split by lines
@@ -131,7 +132,6 @@ end
 
 -- count token occurences and return the token,occurences map
 function tastytxt.vocab(text)
-  local text = text
   local vocab = {}
   -- tokenize punctuation first
   text = tastytxt.tokpunct(text)
@@ -163,11 +163,10 @@ end
 
 -- return a set of text tokens
 function tastytxt.unique(text)
-  local text = text
   local tokset = {}
   local cnt = 0
   -- tokenize punctuation first
-  text = tastytxt.tokpunct(text)
+  local text = tastytxt.tokpunct(text)
   for token in utf8.gmatch(text,"%S+") do
     if tokset[token] == nil then
       tokset[token] = true
@@ -180,19 +179,17 @@ end
 -- replace a digit with 0
 function tastytxt.dig2zero(text)
   local text = text
-  return utf8.gsub(text,"%d","0")
+  return utf8.gsub(text,"%d+","0")
 end
 
 -- replace cnt-frequency tokens with <unk>
--- FIXME! this function is an abomination
 function tastytxt.repunk(text,cnt)
-  local text = text
+  local inner = {}
+  local outer = {}
   -- find rare tokens
-  local rare = tastytxt.rare(text,cnt)
+  local rare = tastytxt.rare(text,cnt or 1)
   -- tokenize text and return tokens array
-  text_arr = tastytxt.tok(text)
-  -- convert to datatype independent from Lua memory allocator, helps with not enough memory errors
-  --text_arr = tds.Hash(text_arr)
+  local text_arr = tastytxt.tok(text)
   -- replace rare tokens with <unk>
   for l=1,#text_arr do -- iterating lines {}
     for t=1,#text_arr[l] do -- iterating tokens {}
@@ -201,20 +198,15 @@ function tastytxt.repunk(text,cnt)
       end
     end
   end
-  -- merge text array back
-  text = ""
-  local line = ""
-  local loops = 0
-  for l=1,#text_arr do -- iterating lines {}
-    line = ""
-    for t=1,#text_arr[l] do -- iterating tokens {}
-      line = line.." "..text_arr[l][t]
-    end
-    text = text..utf8.gsub(line," ","",1).."\n" -- remove leading space, add newline
-    loops = loops + 1
-    if loops % 10000 == 0 then collectgarbage() end
+  -- concat inner level
+  for i=1,#text_arr do
+    table.insert(inner,table.concat(text_arr[i],' '))
   end
-  return text
+  -- concat outer level
+  for i=1,#inner do
+    table.insert(outer,inner[i])
+  end
+  return table.concat(outer, "\n")
 end
 
 --[[Do complete preprocessing of a corpus which includes:
@@ -228,10 +220,9 @@ punct -- include punctuation if true
 unk -- include <unk> if true
 ]]
 function tastytxt.prep(text,punct,unk)
-  local text = text
   -- lowercase text
   print('> lowercasing...')
-  text = tastytxt.low(text)
+  local text = tastytxt.low(text)
   if punct then
     print('> stripping punctuation...')
     text = tastytxt.stripp(text)
@@ -243,6 +234,7 @@ function tastytxt.prep(text,punct,unk)
   print('> digits to zero...')
   text = tastytxt.dig2zero(text)
   -- replace singletons with <unk>
+  collectgarbage()
   if unk then
     print('> adding <unk>...')
     text = tastytxt.repunk(text,1)
