@@ -54,7 +54,7 @@ function tastytxt.low(text)
 end
 
 -- separate punctuation from text
-function tastytxt.tokpunct(text)
+function tastytxt.tokenize(text)
   local text = text
   local lns = {}
   -- iterate over each line, otherwise we are breaking text formatting
@@ -63,8 +63,14 @@ function tastytxt.tokpunct(text)
     line = utf8.gsub(line,"(%p)"," %1 ")
     -- replace mult space with single space
     line = utf8.gsub(line,"%s%s+"," ")
-    -- fix 's
+    -- fix auxiliary contractions
     line = utf8.gsub(line," ' s "," 's ") -- for English
+    line = utf8.gsub(line," ' t "," 't ") -- for English
+    line = utf8.gsub(line," ' ve "," 've ") -- for English
+    line = utf8.gsub(line," ' m "," 'm ") -- for English
+    line = utf8.gsub(line," ' re "," 're ") -- for English
+    line = utf8.gsub(line," ' d "," 'd ") -- for English
+    line = utf8.gsub(line," ' ll "," 'll ") -- for English
     table.insert(lns,line)
   end
   return table.concat(lns,'\n')
@@ -74,15 +80,15 @@ end
 function tastytxt.cnt(text)
   local text = text
   -- separate punctuation from words first
-  local _,cnt = utf8.gsub(tastytxt.tokpunct(text),"%S+",'')
+  local _,cnt = utf8.gsub(tastytxt.tokenize(text),"%S+",'')
   return cnt
 end
 
 -- count only punctuation chars
-function tastytxt.cntpnc(text)
+function tastytxt.cnt_punk(text)
   local text = text
   -- separate punctuation from words first
-  local _,cnt = utf8.gsub(tastytxt.tokpunct(text),"%p",'')
+  local _,cnt = utf8.gsub(tastytxt.tokenize(text),"%p",'')
   return cnt
 end
 
@@ -115,7 +121,7 @@ end
 
 
 -- tokenize text and return lines array of tokens array
-function tastytxt.tok(text)
+function tastytxt.lines(text)
   local lns = {}
   local toks = {}
   -- split by lines
@@ -130,11 +136,11 @@ function tastytxt.tok(text)
   return lns
 end
 
--- count token occurences and return the token,occurences map
+-- count tokens and return {token=cnt} map
 function tastytxt.vocab(text)
   local vocab = {}
   -- tokenize punctuation first
-  text = tastytxt.tokpunct(text)
+  text = tastytxt.tokenize(text)
   -- count tokens
   for word in utf8.gmatch(text,"%S+") do
     if vocab[word] then
@@ -146,7 +152,7 @@ function tastytxt.vocab(text)
   return vocab
 end
 
--- return tokens occurring <= max number of times
+-- return {tokens} occurring <= max number of times
 function tastytxt.rare(text,max)
   -- count tokens
   local wordmap = tastytxt.vocab(text)
@@ -166,7 +172,7 @@ function tastytxt.unique(text)
   local tokset = {}
   local cnt = 0
   -- tokenize punctuation first
-  local text = tastytxt.tokpunct(text)
+  local text = tastytxt.tokenize(text)
   for token in utf8.gmatch(text,"%S+") do
     if tokset[token] == nil then
       tokset[token] = true
@@ -189,7 +195,7 @@ function tastytxt.repunk(text,cnt)
   -- find rare tokens
   local rare = tastytxt.rare(text,cnt or 1)
   -- tokenize text and return tokens array
-  local text_arr = tastytxt.tok(text)
+  local text_arr = tastytxt.lines(text)
   -- replace rare tokens with <unk>
   for l=1,#text_arr do -- iterating lines {}
     for t=1,#text_arr[l] do -- iterating tokens {}
@@ -226,7 +232,7 @@ function tastytxt.prep(text,punct,unk)
   end
   -- tokenize punctuation
   print('> tokenizing...')
-  text = tastytxt.tokpunct(text)
+  text = tastytxt.tokenize(text)
   -- replace digits with zeros
   print('> digits to zero...')
   text = tastytxt.dig2zero(text)
