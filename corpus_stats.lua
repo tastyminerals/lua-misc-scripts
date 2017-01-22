@@ -253,6 +253,7 @@ iop("counting sentences...\r")
 stats.sents_cnt = cnt_sents(data)
 iop("counting single words...\r")
 stats.singletons = cnt(rare(stats.vocab))
+iop("\r\n")
 
 print("Name: "..input)
 print("size (MB): "..stats.size_mb)
