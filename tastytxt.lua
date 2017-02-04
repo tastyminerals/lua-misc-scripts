@@ -4,8 +4,22 @@ local tastytxt = {}
 
 pl = require 'pl'
 utf8 = require 'lua-utf8'
---tds = require 'tds' --https://github.com/torch/tds
 --pretty = require 'pl.pretty'
+
+
+function tastytxt.round(num, decimal)
+  local mult = 10^(decimal or 0)
+  return math.floor(num * mult + 0.5) / mult
+end
+
+function tastytxt.size(file)
+  local f = io.open(file,'r')
+  local current = f:seek()      -- get current position
+  local size = f:seek("end")    -- get file size
+  f:seek("set",current)        -- restore position
+  f:close()
+  return round(size/1024/1024,2)
+end
 
 -- if a dir contains files, return an array of file full paths
 function tastytxt.ls(path)
@@ -20,7 +34,6 @@ function tastytxt.ls(path)
     pfile:close()
     return files
 end
-
 
 -- read corpus file
 function tastytxt.read(fname)
